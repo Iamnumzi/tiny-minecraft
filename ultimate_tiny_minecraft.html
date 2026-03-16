@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Ultimate Tiny Minecraft</title>
+
+<style>
+
+body{
+background:#111;
+color:white;
+font-family:Arial;
+text-align:center;
+}
+
+#world{
+display:grid;
+grid-template-columns: repeat(20,32px);
+gap:1px;
+justify-content:center;
+margin-top:20px;
+}
+
+.block{
+width:32px;
+height:32px;
+cursor:pointer;
+}
+
+.player{
+outline:3px solid yellow;
+}
+
+.zombie{
+outline:3px solid red;
+}
+
+#stats{
+margin-top:15px;
+font-size:18px;
+}
+
+#event{
+color:#facc15;
+margin-top:8px;
+}
+
+button{
+margin-top:10px;
+padding:8px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>🧱 Ultimate Tiny Minecraft</h1>
+<p>Move with WASD • Click blocks to mine</p>
+
+<div id="world"></div>
+
+<div id="stats">
+❤️ Health: <span id="health"></span> |
+🧱 Blocks: <span id="blocks"></span> |
+🌳 Wood: <span id="wood"></span> |
+💎 Diamonds: <span id="diamonds"></span> |
+⛏ Pickaxe: <span id="pickaxe"></span>
+</div>
+
+<div id="event"></div>
+
+<script>
+
+const size=20
+
+let playerX=10
+let playerY=10
+
+let health=10
+let blocks=0
+let wood=0
+let diamonds=0
+let pickaxe=1
+
+let zombies=[]
+
+const textures={
+stone:"https://i.imgur.com/9QZ6H0v.png",
+dirt:"https://i.imgur.com/cq6XG8E.png",
+wood:"https://i.imgur.com/2R8YHqK.png"
+}
+
+let map=[]
+
+const world=document.getElementById("world")
+
+function generateWorld(){
+
+map=[]
+
+for(let y=0;y<size;y++){
+
+let row=[]
+
+for(let x=0;x<size;x++){
+
+let types=["stone","dirt","wood"]
+
+row.push(types[Math.floor(Math.random()*3)])
+
+}
+
+map.push(row)
+
+}
+
+}
+
+function spawnZombies(){
+
+for(let i=0;i<3;i++){
+
+zombies.push({
+x:Math.floor(Math.random()*size),
+y:Math.floor(Math.random()*size)
+})
+
+}
+
+}
+
+function drawWorld(){
+
+world.innerHTML=""
+
+for(let y=0;y<size;y++){
+
+for(let x=0;x<size;x++){
+
+let block=document.createElement("img")
+
+block.src=textures[map[y][x]]
+block.className="block"
+
+if(x===playerX && y===playerY){
+
+block.classList.add("player")
+
+}
+
+for(let z of zombies){
+
+if(z.x===x && z.y===y){
+
+block.classList.add("zombie")
+
+}
+
+}
+
+block.onclick=function(){
+
+mine(x,y)
+
+}
+
+world.appendChild(block)
+
+}
+
+}
+
+}
+
+function mine(x,y){
+
+let type=map[y][x]
+
+if(type==="stone") blocks+=pickaxe
+if(type==="dirt") blocks++
+if(type==="wood") wood++
+
+if(Math.random()<0.05){
+
+diamonds++
+event("💎 Diamond found!")
+
+}
+
+map[y][x]="dirt"
+
+update()
+drawWorld()
+save()
+
+}
+
+function move(dx,dy){
+
+let nx=playerX+dx
+let ny=playerY+dy
+
+if(nx>=0 && ny>=0 && nx<size && ny<size){
+
+playerX=nx
+playerY=ny
+
+}
+
+checkZombie()
+
+drawWorld()
+
+}
+
+document.addEventListener("keydown",e=>{
+
+if(e.key==="w") move(0,-1)
+if(e.key==="s") move(0,1)
+if(e.key==="a") move(-1,0)
+if(e.key==="d") move(1,0)
+
+})
+
+function moveZombies(){
+
+for(let z of zombies){
+
+let dir=[[1,0],[-1,0],[0,1],[0,-1]][Math.floor(Math.random()*4)]
+
+z.x=Math.max(0,Math.min(size-1,z.x+dir[0]))
+z.y=Math.max(0,Math.min(size-1,z.y+dir[1]))
+
+}
+
+checkZombie()
+drawWorld()
+
+}
+
+function checkZombie(){
+
+for(let z of zombies){
+
+if(z.x===playerX && z.y===playerY){
+
+health--
+
+event("🧟 Zombie hit you!")
+
+if(health<=0){
+
+alert("Game Over")
+location.reload()
+
+}
+
+}
+
+}
+
+}
+
+setInterval(moveZombies,1500)
+
+function event(text){
+
+document.getElementById("event").innerText=text
+
+}
+
+function update(){
+
+document.getElementById("health").innerText=health
+document.getElementById("blocks").innerText=blocks
+document.getElementById("wood").innerText=wood
+document.getElementById("diamonds").innerText=diamonds
+document.getElementById("pickaxe").innerText=pickaxe
+
+}
+
+function save(){
+
+localStorage.setItem("um_blocks",blocks)
+localStorage.setItem("um_wood",wood)
+localStorage.setItem("um_diamonds",diamonds)
+localStorage.setItem("um_health",health)
+
+}
+
+function load(){
+
+blocks=Number(localStorage.getItem("um_blocks"))||0
+wood=Number(localStorage.getItem("um_wood"))||0
+diamonds=Number(localStorage.getItem("um_diamonds"))||0
+health=Number(localStorage.getItem("um_health"))||10
+
+}
+
+load()
+generateWorld()
+spawnZombies()
+drawWorld()
+update()
+
+</script>
+
+</body>
+</html>
