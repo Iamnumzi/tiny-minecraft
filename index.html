@@ -1,89 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>BrowserCraft Ultimate</title>
+<title>BrowserCraft</title>
 
 <style>
-
 body{
 margin:0;
 overflow:hidden;
-font-family:sans-serif;
 }
 
 #crosshair{
 position:fixed;
 top:50%;
 left:50%;
-width:8px;
-height:8px;
+width:10px;
+height:10px;
 background:white;
 transform:translate(-50%,-50%);
 }
-
-#hotbar{
-position:fixed;
-bottom:20px;
-left:50%;
-transform:translateX(-50%);
-display:flex;
-gap:6px;
-}
-
-.slot{
-width:50px;
-height:50px;
-background:#ddd;
-border:3px solid black;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:22px;
-}
-
-.selected{
-border-color:yellow;
-}
-
 </style>
 
 </head>
+
 <body>
 
 <div id="crosshair"></div>
 
-<div id="hotbar">
-<div class="slot selected">🟩</div>
-<div class="slot">🟫</div>
-<div class="slot">🪨</div>
-<div class="slot">🌳</div>
-<div class="slot">💎</div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/PointerLockControls.js"></script>
+
 <script>
 
-let scene=new THREE.Scene()
+const scene = new THREE.Scene()
 
-let camera=new THREE.PerspectiveCamera(
+const camera = new THREE.PerspectiveCamera(
 75,
 window.innerWidth/window.innerHeight,
 0.1,
 1000
 )
 
-let renderer=new THREE.WebGLRenderer()
+const renderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth,window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
-let sun=new THREE.DirectionalLight(0xffffff,1)
-sun.position.set(20,40,20)
-scene.add(sun)
+scene.background = new THREE.Color(0x87CEEB)
 
-scene.add(new THREE.AmbientLight(0x777777))
+const light = new THREE.DirectionalLight(0xffffff,1)
+light.position.set(10,20,10)
+scene.add(light)
 
-const geometry=new THREE.BoxGeometry(1,1,1)
+scene.add(new THREE.AmbientLight(0x888888))
+
+const geometry = new THREE.BoxGeometry(1,1,1)
 
 let blocks=[]
 
@@ -101,151 +69,63 @@ blocks.push(cube)
 
 }
 
-function terrainHeight(x,z){
+for(let x=-20;x<20;x++){
 
-return Math.floor(
-Math.sin(x*0.2)*2+
-Math.cos(z*0.2)*2+
-Math.random()*2
-)
+for(let z=-20;z<20;z++){
 
-}
+createBlock(x,0,z,0x55aa55)
 
-function createTree(x,y,z){
-
-for(let i=1;i<4;i++){
-createBlock(x,y+i,z,0x8B5A2B)
-}
-
-createBlock(x+1,y+4,z,0x228B22)
-createBlock(x-1,y+4,z,0x228B22)
-createBlock(x,y+4,z+1,0x228B22)
-createBlock(x,y+4,z-1,0x228B22)
-createBlock(x,y+5,z,0x228B22)
-
-}
-
-for(let x=-40;x<40;x++){
-
-for(let z=-40;z<40;z++){
-
-let h=terrainHeight(x,z)
-
-for(let y=0;y<=h;y++){
-
-createBlock(x,y,z,0x55aa55)
-
-}
-
-if(Math.random()<0.04){
-
-createTree(x,h,z)
-
-}
-
-if(h<0){
-
-createBlock(x,-1,z,0x3399ff)
-
+if(Math.random()<0.15){
+createBlock(x,1,z,0x777777)
 }
 
 }
 
 }
 
-camera.position.set(0,8,10)
-
-const controls=new THREE.PointerLockControls(camera,document.body)
-
-document.addEventListener("click",()=>controls.lock())
-
-scene.add(controls.getObject())
+camera.position.set(0,3,5)
 
 let keys={}
 
-document.addEventListener("keydown",e=>{
-
-keys[e.key]=true
-
-if(e.key>="1" && e.key<="5"){
-
-selected=Number(e.key)-1
-
-document.querySelectorAll(".slot").forEach(s=>s.classList.remove("selected"))
-
-document.querySelectorAll(".slot")[selected].classList.add("selected")
-
-}
-
-})
-
+document.addEventListener("keydown",e=>keys[e.key]=true)
 document.addEventListener("keyup",e=>keys[e.key]=false)
 
 function move(){
 
-let speed=0.2
+let speed=0.1
 
-if(keys["w"]) controls.moveForward(speed)
-if(keys["s"]) controls.moveForward(-speed)
-if(keys["a"]) controls.moveRight(-speed)
-if(keys["d"]) controls.moveRight(speed)
+if(keys["w"]) camera.position.z-=speed
+if(keys["s"]) camera.position.z+=speed
+if(keys["a"]) camera.position.x-=speed
+if(keys["d"]) camera.position.x+=speed
 
 }
 
-let raycaster=new THREE.Raycaster()
+const raycaster = new THREE.Raycaster()
 
-document.addEventListener("mousedown",e=>{
+document.addEventListener("click",()=>{
 
 raycaster.setFromCamera(new THREE.Vector2(0,0),camera)
 
-let hit=raycaster.intersectObjects(blocks)
+const hit = raycaster.intersectObjects(blocks)
 
 if(hit.length>0){
 
-let block=hit[0].object
-
-if(e.button===0){
+const block=hit[0].object
 
 scene.remove(block)
-blocks=blocks.filter(b=>b!==block)
 
-}
-
-if(e.button===2){
-
-let p=hit[0].point
-let n=hit[0].face.normal
-
-createBlock(
-Math.round(p.x+n.x),
-Math.round(p.y+n.y),
-Math.round(p.z+n.z),
-0x55aa55
-)
-
-}
+blocks = blocks.filter(b=>b!==block)
 
 }
 
 })
-
-document.addEventListener("contextmenu",e=>e.preventDefault())
-
-let time=0
 
 function animate(){
 
 requestAnimationFrame(animate)
 
 move()
-
-time+=0.002
-
-scene.background=new THREE.Color().setHSL(
-0.6,
-0.5,
-0.6-Math.sin(time)*0.25
-)
 
 renderer.render(scene,camera)
 
