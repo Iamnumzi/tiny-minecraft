@@ -1,171 +1,152 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Ultimate Tiny Minecraft</title>
+<title>BrowserCraft Ultimate</title>
 
 <style>
 
 body{
-background:#111;
-color:white;
-font-family:Arial;
-text-align:center;
+margin:0;
+overflow:hidden;
+font-family:sans-serif;
 }
 
-#world{
-display:grid;
-grid-template-columns: repeat(20,32px);
-gap:1px;
+#crosshair{
+position:fixed;
+top:50%;
+left:50%;
+width:8px;
+height:8px;
+background:white;
+transform:translate(-50%,-50%);
+}
+
+#hotbar{
+position:fixed;
+bottom:20px;
+left:50%;
+transform:translateX(-50%);
+display:flex;
+gap:6px;
+}
+
+.slot{
+width:50px;
+height:50px;
+background:#ddd;
+border:3px solid black;
+display:flex;
+align-items:center;
 justify-content:center;
-margin-top:20px;
+font-size:22px;
 }
 
-.block{
-width:32px;
-height:32px;
-cursor:pointer;
-}
-
-.player{
-outline:3px solid yellow;
-}
-
-.zombie{
-outline:3px solid red;
-}
-
-#stats{
-margin-top:15px;
-font-size:18px;
-}
-
-#event{
-color:#facc15;
-margin-top:8px;
-}
-
-button{
-margin-top:10px;
-padding:8px;
+.selected{
+border-color:yellow;
 }
 
 </style>
 
 </head>
-
 <body>
 
-<h1>🧱 Ultimate Tiny Minecraft</h1>
-<p>Move with WASD • Click blocks to mine</p>
+<div id="crosshair"></div>
 
-<div id="world"></div>
-
-<div id="stats">
-❤️ Health: <span id="health"></span> |
-🧱 Blocks: <span id="blocks"></span> |
-🌳 Wood: <span id="wood"></span> |
-💎 Diamonds: <span id="diamonds"></span> |
-⛏ Pickaxe: <span id="pickaxe"></span>
+<div id="hotbar">
+<div class="slot selected">🟩</div>
+<div class="slot">🟫</div>
+<div class="slot">🪨</div>
+<div class="slot">🌳</div>
+<div class="slot">💎</div>
 </div>
 
-<div id="event"></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/PointerLockControls.js"></script>
 
 <script>
 
-const size=20
+let scene=new THREE.Scene()
 
-let playerX=10
-let playerY=10
+let camera=new THREE.PerspectiveCamera(
+75,
+window.innerWidth/window.innerHeight,
+0.1,
+1000
+)
 
-let health=10
-let blocks=0
-let wood=0
-let diamonds=0
-let pickaxe=1
+let renderer=new THREE.WebGLRenderer()
+renderer.setSize(window.innerWidth,window.innerHeight)
+document.body.appendChild(renderer.domElement)
 
-let zombies=[]
+let sun=new THREE.DirectionalLight(0xffffff,1)
+sun.position.set(20,40,20)
+scene.add(sun)
 
-const textures={
-stone:"https://i.imgur.com/9QZ6H0v.png",
-dirt:"https://i.imgur.com/cq6XG8E.png",
-wood:"https://i.imgur.com/2R8YHqK.png"
-}
+scene.add(new THREE.AmbientLight(0x777777))
 
-let map=[]
+const geometry=new THREE.BoxGeometry(1,1,1)
 
-const world=document.getElementById("world")
+let blocks=[]
 
-function generateWorld(){
+function createBlock(x,y,z,color){
 
-map=[]
+let material=new THREE.MeshLambertMaterial({color})
 
-for(let y=0;y<size;y++){
+let cube=new THREE.Mesh(geometry,material)
 
-let row=[]
+cube.position.set(x,y,z)
 
-for(let x=0;x<size;x++){
+scene.add(cube)
 
-let types=["stone","dirt","wood"]
-
-row.push(types[Math.floor(Math.random()*3)])
+blocks.push(cube)
 
 }
 
-map.push(row)
+function terrainHeight(x,z){
+
+return Math.floor(
+Math.sin(x*0.2)*2+
+Math.cos(z*0.2)*2+
+Math.random()*2
+)
 
 }
 
+function createTree(x,y,z){
+
+for(let i=1;i<4;i++){
+createBlock(x,y+i,z,0x8B5A2B)
 }
 
-function spawnZombies(){
-
-for(let i=0;i<3;i++){
-
-zombies.push({
-x:Math.floor(Math.random()*size),
-y:Math.floor(Math.random()*size)
-})
-
-}
-
-}
-
-function drawWorld(){
-
-world.innerHTML=""
-
-for(let y=0;y<size;y++){
-
-for(let x=0;x<size;x++){
-
-let block=document.createElement("img")
-
-block.src=textures[map[y][x]]
-block.className="block"
-
-if(x===playerX && y===playerY){
-
-block.classList.add("player")
+createBlock(x+1,y+4,z,0x228B22)
+createBlock(x-1,y+4,z,0x228B22)
+createBlock(x,y+4,z+1,0x228B22)
+createBlock(x,y+4,z-1,0x228B22)
+createBlock(x,y+5,z,0x228B22)
 
 }
 
-for(let z of zombies){
+for(let x=-40;x<40;x++){
 
-if(z.x===x && z.y===y){
+for(let z=-40;z<40;z++){
 
-block.classList.add("zombie")
+let h=terrainHeight(x,z)
 
-}
+for(let y=0;y<=h;y++){
 
-}
-
-block.onclick=function(){
-
-mine(x,y)
+createBlock(x,y,z,0x55aa55)
 
 }
 
-world.appendChild(block)
+if(Math.random()<0.04){
+
+createTree(x,h,z)
+
+}
+
+if(h<0){
+
+createBlock(x,-1,z,0x3399ff)
 
 }
 
@@ -173,136 +154,105 @@ world.appendChild(block)
 
 }
 
-function mine(x,y){
+camera.position.set(0,8,10)
 
-let type=map[y][x]
+const controls=new THREE.PointerLockControls(camera,document.body)
 
-if(type==="stone") blocks+=pickaxe
-if(type==="dirt") blocks++
-if(type==="wood") wood++
+document.addEventListener("click",()=>controls.lock())
 
-if(Math.random()<0.05){
+scene.add(controls.getObject())
 
-diamonds++
-event("💎 Diamond found!")
-
-}
-
-map[y][x]="dirt"
-
-update()
-drawWorld()
-save()
-
-}
-
-function move(dx,dy){
-
-let nx=playerX+dx
-let ny=playerY+dy
-
-if(nx>=0 && ny>=0 && nx<size && ny<size){
-
-playerX=nx
-playerY=ny
-
-}
-
-checkZombie()
-
-drawWorld()
-
-}
+let keys={}
 
 document.addEventListener("keydown",e=>{
 
-if(e.key==="w") move(0,-1)
-if(e.key==="s") move(0,1)
-if(e.key==="a") move(-1,0)
-if(e.key==="d") move(1,0)
+keys[e.key]=true
+
+if(e.key>="1" && e.key<="5"){
+
+selected=Number(e.key)-1
+
+document.querySelectorAll(".slot").forEach(s=>s.classList.remove("selected"))
+
+document.querySelectorAll(".slot")[selected].classList.add("selected")
+
+}
 
 })
 
-function moveZombies(){
+document.addEventListener("keyup",e=>keys[e.key]=false)
 
-for(let z of zombies){
+function move(){
 
-let dir=[[1,0],[-1,0],[0,1],[0,-1]][Math.floor(Math.random()*4)]
+let speed=0.2
 
-z.x=Math.max(0,Math.min(size-1,z.x+dir[0]))
-z.y=Math.max(0,Math.min(size-1,z.y+dir[1]))
-
-}
-
-checkZombie()
-drawWorld()
+if(keys["w"]) controls.moveForward(speed)
+if(keys["s"]) controls.moveForward(-speed)
+if(keys["a"]) controls.moveRight(-speed)
+if(keys["d"]) controls.moveRight(speed)
 
 }
 
-function checkZombie(){
+let raycaster=new THREE.Raycaster()
 
-for(let z of zombies){
+document.addEventListener("mousedown",e=>{
 
-if(z.x===playerX && z.y===playerY){
+raycaster.setFromCamera(new THREE.Vector2(0,0),camera)
 
-health--
+let hit=raycaster.intersectObjects(blocks)
 
-event("🧟 Zombie hit you!")
+if(hit.length>0){
 
-if(health<=0){
+let block=hit[0].object
 
-alert("Game Over")
-location.reload()
+if(e.button===0){
+
+scene.remove(block)
+blocks=blocks.filter(b=>b!==block)
+
+}
+
+if(e.button===2){
+
+let p=hit[0].point
+let n=hit[0].face.normal
+
+createBlock(
+Math.round(p.x+n.x),
+Math.round(p.y+n.y),
+Math.round(p.z+n.z),
+0x55aa55
+)
 
 }
 
 }
 
-}
+})
+
+document.addEventListener("contextmenu",e=>e.preventDefault())
+
+let time=0
+
+function animate(){
+
+requestAnimationFrame(animate)
+
+move()
+
+time+=0.002
+
+scene.background=new THREE.Color().setHSL(
+0.6,
+0.5,
+0.6-Math.sin(time)*0.25
+)
+
+renderer.render(scene,camera)
 
 }
 
-setInterval(moveZombies,1500)
-
-function event(text){
-
-document.getElementById("event").innerText=text
-
-}
-
-function update(){
-
-document.getElementById("health").innerText=health
-document.getElementById("blocks").innerText=blocks
-document.getElementById("wood").innerText=wood
-document.getElementById("diamonds").innerText=diamonds
-document.getElementById("pickaxe").innerText=pickaxe
-
-}
-
-function save(){
-
-localStorage.setItem("um_blocks",blocks)
-localStorage.setItem("um_wood",wood)
-localStorage.setItem("um_diamonds",diamonds)
-localStorage.setItem("um_health",health)
-
-}
-
-function load(){
-
-blocks=Number(localStorage.getItem("um_blocks"))||0
-wood=Number(localStorage.getItem("um_wood"))||0
-diamonds=Number(localStorage.getItem("um_diamonds"))||0
-health=Number(localStorage.getItem("um_health"))||10
-
-}
-
-load()
-generateWorld()
-spawnZombies()
-drawWorld()
-update()
+animate()
 
 </script>
 
